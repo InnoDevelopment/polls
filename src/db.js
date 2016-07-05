@@ -7,15 +7,10 @@ class PollsDB {
 		var PollsDB = this;
 		PollsDB._options = options;
 		switch(PollsDB._options.type) {
-			case 'mongodb': PollsDB._instance = new PollsMongoDB(PollsDB, options); break;
-			case 'mysql': PollsDB._instance = new PollsMySQLDB(PollsDB, options); break;
-			default: PollsDB._instance = new PollsMongoDB(PollsDB, options);
+			case 'mongodb': return new PollsMongoDB(PollsDB, options); break;
+			case 'mysql': return new PollsMySQLDB(PollsDB, options); break;
+			default: return new PollsMongoDB(PollsDB, options);
 		}
-	}
-
-	connect(callback) {
-		var PollsDB = this;
-		PollsDB._instance.connect(callback);
 	}
 }
 
@@ -30,7 +25,6 @@ class PollsMongoDB {
 		options = options || {};
 		options.port = options.port || 27017;
 		options.database = options.database || 'mongodb';
-		options.path = options.path || '';
 		options.protocol = options.protocol || 'mongodb://';
 		PollsMongoDB._options = options;
 
@@ -48,7 +42,7 @@ class PollsMongoDB {
 	connect(callback) {
 		var PollsMongoDB = this;
 		// Connect to the server
-		var url = PollsMongoDB._options.protocol+PollsMongoDB._options.host+':'+PollsMongoDB._options.port+PollsMongoDB._options.path;
+		var url = PollsMongoDB._options.protocol+PollsMongoDB._options.host+':'+PollsMongoDB._options.port+'/'+PollsMongoDB._options.database;
 		PollsMongoDB._mongo.connect(url, function(err, db) {
 			if(err) {
 				PollsMongoDB.PollsDB.api.debug('Connection error in MongoDB module\r\n'+err);
@@ -60,9 +54,53 @@ class PollsMongoDB {
 		});
 	}
 
-	find(filter, callback) {
+	getPoll(filter, callback) {
 		var PollsMongoDB = this;
+		var pollsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_list');
+		pollsCollection.findOne(filter, {'_id': false}, function(err, doc) {
+			var data = (err||!doc) ? null : {
+				pid: doc.pid,
+				title: doc.title,
+				description: doc.description,
+				privacy_type: doc.privacy_type,
+				password: doc.password
+			};
+			if(callback) callback(err, data);
+		});
+	}
 
+	getPollList(filter, callback) {
+		var PollsMongoDB = this;
+		var pollsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_list');
+		pollsCollection.find(filter, {'_id': false}).toArray(function(err, docs) {
+			if(callback) callback(err, docs);
+		});
+	}
+
+	createPoll(fields, callback) {
+		var PollsMongoDB = this;
+		var pollsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_list');
+		var options = { "sort": [['pid','desc']] };
+		pollsCollection.findOne({}, options , function(err, doc) {
+			var newId = 1 + (doc ? doc.pid : 0);
+			var createdAt = new Date().getTime();
+			pollsCollection.insertOne({
+				title: fields.title,
+				description: fields.description,
+				privacy_type: fields.privacy_type,
+				password: fields.password,
+				author: fields.userdata.id,
+				created_at: createdAt,
+				pid: newId,
+				questions: {}
+			}, function(err, result) {
+				if(callback) callback(err, result);
+			});
+		});
+	}
+
+	addQuestion(poll_id, fields, callback) {
+		
 	}
 }
 

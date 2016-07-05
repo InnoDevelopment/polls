@@ -13,8 +13,8 @@ function queryProcess(Polls) {
 	}));
 
 	/* Accounting check */
-	api.use([url+':token', url+':token/:id'], function(req, res, next) {
-		var token = req.params.token;
+	api.use([url+':token/:id', url+':token', url], function(req, res, next) {
+		var token = req.params.token || req.body.token;
 		if(!token) {
 			res.json({
 				error: "You are not logged in",
@@ -66,30 +66,74 @@ function queryProcess(Polls) {
 	api.get(url+':token', function(request, response) {
 		var token = request.params.token;
 		var userdata = request.user;
-		var pollsCollection = Polls.db.connection.collection(Polls._options.db.table_prefix+'_list');
-		pollsCollection.find({
-			token: token
-		}).toArray(function(err, docs) {
-			response.json({
-				result: docs,
-				status: true
-			});
+		Polls.db.getPollList({"author": userdata.id}, function(err, docs) {
+			if(err) {
+				response.json({
+					error: "Query error",
+					status: false
+				});
+			} else {
+				response.json({
+					result: docs,
+					status: true
+				});
+			}
 		});
 	});
 
-	api.get(url+':token/:id', function(request, response) {
+	api.get(url+':token/:id([0-9]*?)', function(request, response) {
 		var token = request.params.token;
 		var poll_id = request.params.id;
 		var userdata = request.user;
-		var pollsCollection = Polls.db.connection.collection(Polls._options.db.table_prefix+'_list');
-		pollsCollection.findOne({
-			token: token,
-			pid: poll_id
-		}, function(err, doc) {
-			response.json({
-				result: doc,
-				status: true
-			});
+		Polls.db.getPoll({"author": userdata.id, "pid": parseInt(poll_id)}, function(err, doc) {
+			if(err) {
+				response.json({
+					error: "Query error",
+					status: false
+				});
+			} else {
+				response.json({
+					result: doc,
+					status: true
+				});
+			}
+		});
+	});
+
+	/* Create poll */
+	api.post(url, function(request, response) {
+		var token = request.body.token;
+		var userdata = request.user;
+		request.body.fields.userdata = userdata;
+		request.body.fields.token = request.body.token
+		Polls.db.createPoll(request.body.fields, function(err, result) {
+			if(err) {
+				response.json({
+					error: "Insert error",
+					status: false
+				});
+			} else {
+				response.json({
+					result: result,
+					status: true
+				});
+			}
+		});
+	});
+
+	/* Create a question for a poll */
+	api.post(url+':id', function(request, response) {
+		response.json({
+			error: "Not implemented",
+			status: false
+		});
+	});
+
+	/* Delete a poll */
+	api.delete(url+':id', function(request, response) {
+		response.json({
+			error: "Not implemented",
+			status: false
 		});
 	});
 
@@ -108,6 +152,14 @@ function queryProcess(Polls) {
 		// 		data: rows
 		// 	});
 		// });
+	});
+
+	/* No such action */
+	api.all(url+'*', function(request, response) {
+		response.json({
+			error: "No such action",
+			status: false
+		});
 	});
 
 }

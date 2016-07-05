@@ -9,7 +9,7 @@
 		"host": "localhost",
 		"username": "bob",
 		"password": "1234",
-		"database": "",
+		"database": "mongodb",
 		"table_prefix": "polls"
 	},
 	"accounting": {
