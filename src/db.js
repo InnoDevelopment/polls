@@ -38,9 +38,9 @@ class PollsMongoDB {
 		try {
 			var mongo = require('mongodb');
 			PollsMongoDB._mongo = mongo;
-			console.log('MongoDB module loaded');
+			PollsMongoDB.PollsDB.api.debug('MongoDB module loaded');
 		} catch (e) {
-			console.log('Error: Module "mongodb" not found. Use `npm install mongodb` command to fix this problem');
+			PollsMongoDB.PollsDB.api.debug('Error: Module "mongodb" not found. Use `npm install mongodb` command to fix this problem');
 			process.exit(1);
 		}
 	}
@@ -51,13 +51,18 @@ class PollsMongoDB {
 		var url = PollsMongoDB._options.protocol+PollsMongoDB._options.host+':'+PollsMongoDB._options.port+PollsMongoDB._options.path;
 		PollsMongoDB._mongo.connect(url, function(err, db) {
 			if(err) {
-				console.log('Connection error in MongoDB module\r\n'+err);
+				PollsMongoDB.PollsDB.api.debug('Connection error in MongoDB module\r\n'+err);
 				process.exit(1);
 			}
 			PollsMongoDB.PollsDB.connection = db;
-			console.log('MongoDB connection established');
+			PollsMongoDB.PollsDB.api.debug('MongoDB connection established');
 			if(callback) callback();
 		});
+	}
+
+	find(filter, callback) {
+		var PollsMongoDB = this;
+
 	}
 }
 
@@ -77,30 +82,100 @@ class PollsMySQLDB {
 		try {
 			var mysql = require('mysql');
 			PollsMySQLDB._mysql = mysql;
-			console.log('MySQL module loaded');
+			PollsMySQLDB.PollsDB.api.debug('MySQL module loaded');
 		} catch (e) {
-			console.log('Error: Module "mysql" not found. Use `npm install mysql` command to fix this problem');
+			PollsMySQLDB.PollsDB.api.debug('Error: Module "mysql" not found. Use `npm install mysql` command to fix this problem');
 			process.exit(1);
 		}
+	}
+
+	createScheme(callback) {
+		var PollsMySQLDB = this;
+
+		if(!PollsMySQLDB.PollsDB.connection) { // just in case
+			PollsMySQLDB.PollsDB.api.debug('Error: No connection!');
+			process.exit(1);
+		}
+
+		var TP = PollsMySQLDB._options.table_prefix;
+
+		var sql = 
+		'CREATE TABLE IF NOT EXISTS `'+TP+'_list` ('+
+			'`poll_id` int(11) NOT NULL AUTO_INCREMENT,'+
+			'`token` text NOT NULL,'+
+			'`title` text NOT NULL,'+
+			'`description` text,'+
+			'`privacy_type` text NOT NULL,'+
+			'`password` text,'+
+			'`author` text,'+
+			'PRIMARY KEY (`poll_id`)'+
+		');'+
+		'CREATE TABLE IF NOT EXISTS `'+TP+'_questions` ('+
+			'`question_id` int(11) NOT NULL AUTO_INCREMENT,'+
+			'`type` text NOT NULL,'+
+			'`description` text NOT NULL,'+
+			'`data` text,'+
+			'`poll_id` int(11),'+
+			'PRIMARY KEY (`question_id`)'+
+		');'+
+		'CREATE TABLE IF NOT EXISTS `'+TP+'_result` ('+
+			'`result_id` int(11) NOT NULL AUTO_INCREMENT,'+
+			'`date` text NOT NULL,'+
+			'`poll_id` text NOT NULL,'+
+			'`user` text,'+
+			'PRIMARY KEY (`result_id`)'+
+		')';
+
+		PollsMySQLDB.PollsDB.connection.query(sql, function(err, rows, fields) {
+			if(err) {
+				PollsMySQLDB.PollsDB.api.debug('Scheme creation error in MySQL module\r\n'+err);
+				process.exit(1);
+			}
+			if(rows.warningCount == 0) {
+				PollsMySQLDB.PollsDB.api.debug('MySQL tables were successfuly created');
+				if(callback) callback();
+			}
+		});
+	}
+
+	dropTables(callback) {
+		var PollsMySQLDB = this;
+
+		if(!PollsMySQLDB.PollsDB.connection) { // just in case
+			PollsMySQLDB.PollsDB.api.debug('Error: No connection!');
+			process.exit(1);
+		}
+
+		var sql = 'DROP TABLE `poll_list`';
+		PollsMySQLDB.PollsDB.connection.query(sql, function(err, rows, fields) {
+			if(err) {
+				PollsMySQLDB.PollsDB.api.debug('Tables dropping error in MySQL module\r\n'+err);
+				process.exit(1);
+			}
+			if(rows.warningCount == 0) {
+				PollsMySQLDB.PollsDB.api.debug('MySQL tables were successfuly dropped');
+				if(callback) callback();
+			}
+		});
 	}
 
 	connect(callback) {
 		var PollsMySQLDB = this;
 		// Connect to the server
 		var connection = PollsMySQLDB._mysql.createConnection({
-			host     : PollsMySQLDB._options.host,
-			user     : PollsMySQLDB._options.username,
-			password : PollsMySQLDB._options.password,
-			database : PollsMySQLDB._options.database
+			host     : 	 PollsMySQLDB._options.host,
+			user     : 	 PollsMySQLDB._options.username,
+			password : 	 PollsMySQLDB._options.password,
+			database : 	 PollsMySQLDB._options.database
 		});
 		connection.connect(function(err) {
 			if(err) {
-				console.log('Connection error in MySQL module\r\n'+err);
+				PollsMySQLDB.PollsDB.api.debug('Connection error in MySQL module\r\n'+err);
 				process.exit(1);
 			}
 			PollsMySQLDB.PollsDB.connection = connection;
-			console.log('MySQL connection established');
-			if(callback) callback();
+			PollsMySQLDB.PollsDB.api.debug('MySQL connection established');
+			PollsMySQLDB.createScheme(callback);
 		});
 	}
 
@@ -108,7 +183,7 @@ class PollsMySQLDB {
 	// 	var PollsMySQLDB = this;
 	// 	PollsMySQLDB._connection.query('SELECT 1', function(err, rows) {
 	// 		f(err) {
-	// 			console.log('Query error in MySQL module\r\n'+err);
+	// 			PollsMySQLDB.PollsDB.api.debug('Query error in MySQL module\r\n'+err);
 	// 		}
 	// 		if(callback) callback(rows);
 	// 	});

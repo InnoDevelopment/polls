@@ -1,33 +1,61 @@
 {
+	"pre_uri": "/api/",
+	"version": "v1",
+	"service_name": "/polls/",
 	"port": 3333,
+	"host": "0.0.0.0",
 	"db": {
 		"type": "mongodb",
 		"host": "localhost",
 		"username": "bob",
 		"password": "1234",
-		"database": "innowiki",
-		"table_prefix": "poll",
-		"scheme": {
-			"list": {
-				"poll_id": "int autoincrement",
-				"token": "text",
-				"title": "text",
-				"description": "text",
-				"privacy_type": "text",
-				"password": "text"
-			},
-			"questions": {
-				"question_id": "int autoincrement",
-				"type": "text",
-				"description": "text",
-				"data": "text",
-				"poll_id": "int"
-			},
-			"result": {
-				"result_id": "int autoincrement",
-				"date": "bigint",
-				"poll_id": "int",
-				"user": "int"
+		"database": "",
+		"table_prefix": "polls"
+	},
+	"accounting": {
+		"type": "external",
+		"api": {
+			"host": "192.168.1.37",
+			"port": "5000",
+			"protocol": "http://",
+			"commands": {
+				"auth": {
+					"url": "/api/v1/accounts/auth",
+					"method": "post",
+					"fields": ["username", "password"],
+					"result": {
+						"ok": {
+							"status": "ok"
+						},
+						"fail_msg": "error",
+						"return": {
+							"token": "result.token",
+							"id": "result.id",
+							"username": "result.username",
+							"firstName": "result.firstName"
+						}
+					}
+				},
+				"getUser": {
+					"url": "/api/v1/accounts/<token>",
+					"method": "get",
+					"result": {
+						"return": {
+							"id": "result.id",
+							"username": "result.username",
+							"firstName": "result.firstName"
+						}
+					}
+				},
+				"exists": {
+					"url": "/api/v1/accounts/<token>/exists",
+					"method": "get",
+					"result": {
+						"ok": {
+							"result": true
+						}
+					}
+				}
 			}
 		}
 	}
