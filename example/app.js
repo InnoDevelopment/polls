@@ -13,8 +13,8 @@ function queryProcess(Polls) {
 	}));
 
 	/* Accounting check */
-	api.use([url+':token/:id', url+':token', url], function(req, res, next) {
-		var token = req.params.token || req.body.token;
+	api.use([url+':token/:id([0-9]*?)', url+':token', url+':id([0-9]*?)', url], function(req, res, next) {
+		var token = ( req.method=='GET'||req.method=='DELETE' ? req.params.token : req.body.token );
 		if(!token) {
 			res.json({
 				error: "You are not logged in",
@@ -63,6 +63,7 @@ function queryProcess(Polls) {
 	// 	});
 	// });
 
+	/* Get user polls */
 	api.get(url+':token', function(request, response) {
 		var token = request.params.token;
 		var userdata = request.user;
@@ -81,11 +82,12 @@ function queryProcess(Polls) {
 		});
 	});
 
+	/* Get poll */
 	api.get(url+':token/:id([0-9]*?)', function(request, response) {
 		var token = request.params.token;
-		var poll_id = request.params.id;
+		var poll_id = parseInt(request.params.id);
 		var userdata = request.user;
-		Polls.db.getPoll({"author": userdata.id, "pid": parseInt(poll_id)}, function(err, doc) {
+		Polls.db.getPoll({"author": userdata.id, "pid": poll_id}, function(err, doc) {
 			if(err) {
 				response.json({
 					error: "Query error",
@@ -104,9 +106,7 @@ function queryProcess(Polls) {
 	api.post(url, function(request, response) {
 		var token = request.body.token;
 		var userdata = request.user;
-		request.body.fields.userdata = userdata;
-		request.body.fields.token = request.body.token
-		Polls.db.createPoll(request.body.fields, function(err, result) {
+		Polls.db.createPoll(request.body.fields, userdata, function(err, result) {
 			if(err) {
 				response.json({
 					error: "Insert error",
@@ -122,18 +122,38 @@ function queryProcess(Polls) {
 	});
 
 	/* Create a question for a poll */
-	api.post(url+':id', function(request, response) {
-		response.json({
-			error: "Not implemented",
-			status: false
+	api.post(url+':id([0-9]*?)', function(request, response) {
+		var poll_id = parseInt(request.params.id);
+		var userdata = request.user;
+		Polls.db.addQuestions(poll_id, request.body.fields, userdata, function(err, result) {
+			if(err) {
+				response.json({
+					error: "Insert error",
+					status: false
+				});
+			} else {
+				response.json({
+					result: result,
+					status: true
+				});
+			}
 		});
 	});
 
 	/* Delete a poll */
-	api.delete(url+':id', function(request, response) {
-		response.json({
-			error: "Not implemented",
-			status: false
+	api.delete(url+':token/:id([0-9]*?)', function(request, response) {
+		var poll_id = parseInt(request.params.id);
+		var userdata = request.user;
+		Polls.db.deletePoll(poll_id, userdata, function(err, result, msg) {
+			if(err) {
+				response.json({
+					error: "Delete error",
+					status: false
+				});
+			} else {
+				var res = result ? {result: msg, status: result} : {error: msg, status: result};
+				response.json(res);
+			}
 		});
 	});
 

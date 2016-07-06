@@ -65,7 +65,11 @@ class PollsMongoDB {
 				privacy_type: doc.privacy_type,
 				password: doc.password
 			};
-			if(callback) callback(err, data);
+			var pollsQuestionsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_questions');
+			pollsQuestionsCollection.find({'pid': data.pid}, {'pid': false}).toArray(function(err, docs) {
+				data.questions = docs;
+				if(callback) callback(err, data);
+			});
 		});
 	}
 
@@ -77,31 +81,69 @@ class PollsMongoDB {
 		});
 	}
 
-	createPoll(fields, callback) {
+	createPoll(fields, userdata, callback) {
 		var PollsMongoDB = this;
 		var pollsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_list');
 		var options = { "sort": [['pid','desc']] };
 		pollsCollection.findOne({}, options , function(err, doc) {
 			var newId = 1 + (doc ? doc.pid : 0);
 			var createdAt = new Date().getTime();
-			pollsCollection.insertOne({
+			var data = {
 				title: fields.title,
 				description: fields.description,
 				privacy_type: fields.privacy_type,
 				password: fields.password,
-				author: fields.userdata.id,
+				author: userdata.id,
 				created_at: createdAt,
 				pid: newId,
-				questions: {}
-			}, function(err, result) {
-				if(callback) callback(err, result);
+				questions: []
+			};
+			pollsCollection.insertOne(data, function(err, result) {
+				if(callback) callback(err, data);
 			});
 		});
 	}
 
-	addQuestion(poll_id, fields, callback) {
-		
+	deletePoll(poll_id, userdata, callback) {
+		var PollsMongoDB = this;
+		var pollsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_list');
+		pollsCollection.findOne({pid: poll_id} , function(err, doc) {
+			if(doc) {
+				if(doc.author == userdata.id) {
+					pollsCollection.remove({pid: poll_id}, function(err, result) {
+						if(!err) {
+							var pollsQuestionsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_questions');
+							pollsQuestionsCollection.remove({pid: poll_id}, function(err, result) {
+								if(callback) callback(err, true, "Poll has been deleted");
+							});
+						}
+					});
+				} else {
+					if(callback) callback(err, false, "You have no access to delete this poll");
+				}
+			} else {
+				if(callback) callback(err, false, "No such poll");
+			}
+		});
 	}
+
+	addQuestions(poll_id, questions, userdata, callback) {
+		var PollsMongoDB = this;
+		var pollsQuestionsCollection = PollsMongoDB.PollsDB.connection.collection(PollsMongoDB._options.table_prefix+'_questions');
+		var options = { "sort": {'qid': -1} };
+		pollsQuestionsCollection.findOne({}, options , function(err, doc) {
+			var newId = 1 + (doc ? doc.qid : 0);
+			for(var i = 0; i<questions.length; i++) {
+				questions[i].qid = newId++;
+				questions[i].pid = poll_id;
+			}
+			pollsQuestionsCollection.insertMany(questions, function(err, result) {
+				if(callback) callback(err, questions);
+			});
+		});
+	}
+
+
 }
 
 class PollsMySQLDB {
