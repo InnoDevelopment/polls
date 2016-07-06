@@ -4,6 +4,7 @@
 	"service_name": "/polls/",
 	"port": 3333,
 	"host": "0.0.0.0",
+	"debug": true,
 	"db": {
 		"type": "mongodb",
 		"host": "localhost",

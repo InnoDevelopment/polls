@@ -1,4 +1,4 @@
-var PollsAPI = require('./../src/polls').PollsAPI;
+var PollsAPI = require('polls-api');
 var params = require('./config.json');
 
 var Polls = new PollsAPI(params);
