@@ -1,5 +1,3 @@
-"use strict";
-
 Array.prototype.unique = function () {
 	var a = this;
 	return Array.from(new Set(a));

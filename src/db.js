@@ -1,5 +1,3 @@
-"use strict";
-
 class PollsDB {
 
 	constructor(api, options) {
