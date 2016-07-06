@@ -47,21 +47,21 @@ function queryProcess(Polls) {
 		}
 	});
 
-	// api.post(url+'auth', function(request, response) {
-	// 	Polls.user.account.runCommand('auth', request.body, function(result, fail_msg) {
-	// 		if(result) {
-	// 			response.json({
-	// 				result: result,
-	// 				status: true
-	// 			});
-	// 		} else {
-	// 			response.json({
-	// 				error: fail_msg,
-	// 				status: false
-	// 			});
-	// 		}
-	// 	});
-	// });
+	/*api.post(url+'auth', function(request, response) {
+		Polls.user.account.runCommand('auth', request.body, function(result, fail_msg) {
+			if(result) {
+				response.json({
+					result: result,
+					status: true
+				});
+			} else {
+				response.json({
+					error: fail_msg,
+					status: false
+				});
+			}
+		});
+	});*/
 
 	/* Get user polls */
 	api.get(url+':token', function(request, response) {
@@ -167,11 +167,11 @@ function queryProcess(Polls) {
 		});
 
 		/* For MySQL */
-		// Polls.db.connection.query('SELECT user_name FROM user;', function(err, rows) {
-		// 	response.json({
-		// 		data: rows
-		// 	});
-		// });
+		/*Polls.db.connection.query('SELECT user_name FROM user;', function(err, rows) {
+			response.json({
+				data: rows
+			});
+		});*/
 	});
 
 	/* No such action */
