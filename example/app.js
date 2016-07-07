@@ -1,4 +1,4 @@
-var PollsAPI = require('polls-api');
+var PollsAPI = require('./../lib/polls');
 var params = require('./config.json');
 
 var Polls = new PollsAPI(params);
@@ -13,7 +13,7 @@ function queryProcess(Polls) {
 	}));
 
 	/* Accounting check */
-	api.use([url+':token/:id([0-9]*?)', url+':token', url+':id([0-9]*?)', url], function(req, res, next) {
+	api.use([url+':token/:id([0-9]*?)', url+':token/limit/:limit([0-9]*?)', url+':token', url+':id([0-9]*?)', url], function(req, res, next) {
 		var token = ( req.method=='GET'||req.method=='DELETE' ? req.params.token : req.body.token );
 		if(!token) {
 			res.json({
@@ -64,10 +64,11 @@ function queryProcess(Polls) {
 	});*/
 
 	/* Get user polls */
-	api.get(url+':token', function(request, response) {
+	api.get([url+':token', url+':token/limit/:limit([0-9]*?)'], function(request, response) {
 		var token = request.params.token;
+		var limit = request.params.limit;
 		var userdata = request.user;
-		Polls.db.getPollList({"author": userdata.id}, function(err, docs) {
+		Polls.db.getPollList({"author": userdata.id}, limit, function(err, docs) {
 			if(err) {
 				response.json({
 					error: "Query error",

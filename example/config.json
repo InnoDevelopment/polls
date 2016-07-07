@@ -16,7 +16,7 @@
 	"accounting": {
 		"type": "external",
 		"api": {
-			"host": "192.168.1.37",
+			"host": "192.168.1.43",
 			"port": "5000",
 			"protocol": "http://",
 			"commands": {
